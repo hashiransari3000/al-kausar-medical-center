@@ -1371,3 +1371,40 @@ body.dark-mode .featured-care {
     padding-right: 4%;
   }
 }
+
+/* ---- Security bar + auth UI ---- */
+.security-bar {
+  background: linear-gradient(90deg, var(--deep, #0e4d4a), var(--dark, #123f3f));
+  color: #fff;
+  padding: 8px 22px;
+  font-size: 13px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.security-bar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.sec-badge {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.sec-user {
+  margin-left: auto;
+  font-weight: bold;
+}
+
+.theme-toggle.logged-in {
+  background: var(--green, #1e8e7e);
+}

@@ -31,8 +31,19 @@
       <button class="tab-btn" data-tab="prescription">Prescription Upload</button>
       <button class="tab-btn" data-tab="contact">Contact</button>
     </nav>
+    <button id="loginBtn" class="theme-toggle" title="Sign in with Amazon Cognito">🔐 Sign In</button>
     <button id="themeToggle" class="theme-toggle" title="Switch theme">🌙 Dark</button>
   </header>
+
+  <div id="securityBar" class="security-bar hidden">
+    <div class="security-bar-inner">
+      <span>🛡️ <strong>Security Status:</strong></span>
+      <span id="secAuth" class="sec-badge">🔐 JWT Auth</span>
+      <span id="secWAF" class="sec-badge">🛡️ AWS WAF Active</span>
+      <span id="secTLS" class="sec-badge">🔒 HTTPS</span>
+      <span id="secUser" class="sec-user"></span>
+    </div>
+  </div>
 
   <main>
     <section id="home" class="tab-section active-section">

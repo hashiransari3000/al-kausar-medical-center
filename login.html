@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Signing In - Al-Kausar Medical Center</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body.auth-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .auth-card { max-width: 460px; text-align: center; padding: 2rem; }
+    .auth-card img { width: 96px; margin-bottom: 1rem; }
+  </style>
+</head>
+<body class="auth-page">
+  <div class="auth-card card" id="statusCard">
+    <img src="assets/logo.png" alt="Al-Kausar Logo" />
+    <h1>Secure Sign-In</h1>
+    <p id="authMessage">Completing secure login with Amazon Cognito...</p>
+  </div>
+
+  <script>
+    // --- Amazon Cognito login callback handler (PKCE / authorization code flow) ---
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const state = params.get("state");
+      const error = params.get("error");
+      const messageEl = document.getElementById("authMessage");
+
+      const SESSION_KEYS = {
+        access: "akmc_access_token",
+        id: "akmc_id_token",
+        refresh: "akmc_refresh_token",
+        expires: "akmc_token_expires",
+        user: "akmc_user",
+        verifier: "akmc_code_verifier",
+        state: "akmc_oauth_state"
+      };
+
+      function fail(msg) {
+        messageEl.textContent = msg;
+        messageEl.style.color = "#c62828";
+      }
+
+      if (error) {
+        fail("Login was not completed: " + error + ". Please try again.");
+        return;
+      }
+
+      // Verify state to prevent CSRF on the OAuth callback
+      const savedState = sessionStorage.getItem(SESSION_KEYS.state);
+      if (state && savedState && state !== savedState) {
+        fail("State mismatch detected. The login request may have been tampered with.");
+        return;
+      }
+      sessionStorage.removeItem(SESSION_KEYS.state);
+
+      const verifier = sessionStorage.getItem(SESSION_KEYS.verifier);
+      sessionStorage.removeItem(SESSION_KEYS.verifier);
+
+      const COGNITO_DOMAIN = "https://alkausar-lab.auth.ap-south-1.amazoncognito.com";
+      const CLIENT_ID = "m0s0e255m43a8gpf62k69rhjb";
+      const REDIRECT_URI = window.location.origin + "/login.html";
+
+      async function storeTokens(data) {
+        sessionStorage.setItem(SESSION_KEYS.access, data.access_token);
+        sessionStorage.setItem(SESSION_KEYS.id, data.id_token);
+        if (data.refresh_token) sessionStorage.setItem(SESSION_KEYS.refresh, data.refresh_token);
+        sessionStorage.setItem(SESSION_KEYS.expires, String(Date.now() + data.expires_in * 1000));
+
+        // Decode id_token payload for display (email, username, etc.)
+        try {
+          const payload = JSON.parse(atob(data.id_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+          sessionStorage.setItem(SESSION_KEYS.user, JSON.stringify({
+            email: payload.email,
+            username: payload["cognito:username"],
+            name: payload.name || payload.email,
+            exp: payload.exp
+          }));
+        } catch (e) {
+          sessionStorage.setItem(SESSION_KEYS.user, JSON.stringify({ email: "", username: "" }));
+        }
+      }
+
+      if (code) {
+        if (!verifier) {
+          fail("Missing code verifier. Please start login again from the site.");
+          return;
+        }
+
+        fetch(COGNITO_DOMAIN + "/oauth2/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            grant_type: "authorization_code",
+            client_id: CLIENT_ID,
+            code: code,
+            redirect_uri: REDIRECT_URI,
+            code_verifier: verifier
+          })
+        })
+          .then(async (res) => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error_description || data.error || "Token exchange failed");
+            return data;
+          })
+          .then(async (data) => {
+            await storeTokens(data);
+            window.location.replace(window.location.origin + "/index.html");
+          })
+          .catch((err) => {
+            fail("Could not complete login: " + err.message);
+          });
+      } else {
+        messageEl.textContent = "No login code found. Redirecting you to sign in...";
+        setTimeout(() => {
+          window.location.replace(window.location.origin + "/index.html");
+        }, 1500);
+      }
+    })();
+  </script>
+</body>
+</html>

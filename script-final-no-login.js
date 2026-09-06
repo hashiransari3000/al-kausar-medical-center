@@ -1,8 +1,93 @@
-const APPOINTMENT_API_URL = "https://5wkbhqk1n9.execute-api.ap-south-1.amazonaws.com/appointments";
+// API calls now go through the WAF-protected CloudFront edge (/api/* path)
+const APPOINTMENT_API_URL = "https://d3sh4djt5tzbsr.cloudfront.net/api/appointments";
 const USE_REAL_APPOINTMENT_API = true;
-const ORDER_API_URL = "https://5wkbhqk1n9.execute-api.ap-south-1.amazonaws.com/orders";
+const ORDER_API_URL = "https://d3sh4djt5tzbsr.cloudfront.net/api/orders";
 const USE_REAL_ORDER_API = true;
-const UPLOAD_URL_API = "https://5wkbhqk1n9.execute-api.ap-south-1.amazonaws.com/upload-url";
+const UPLOAD_URL_API = "https://d3sh4djt5tzbsr.cloudfront.net/api/upload-url";
+
+// --- Amazon Cognito authentication (login / signup via AWS Hosted UI, PKCE) ---
+const COGNITO_DOMAIN = "https://alkausar-lab.auth.ap-south-1.amazoncognito.com";
+const COGNITO_CLIENT_ID = "m0s0e255m43a8gpf62k69rhjb";
+const COGNITO_REDIRECT_URI = window.location.origin + "/login.html";
+const SESSION_KEYS = {
+  access: "akmc_access_token",
+  id: "akmc_id_token",
+  refresh: "akmc_refresh_token",
+  expires: "akmc_token_expires",
+  user: "akmc_user",
+  verifier: "akmc_code_verifier",
+  state: "akmc_oauth_state"
+};
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function startCognitoLogin() {
+  const verifier = crypto.getRandomValues(new Uint32Array(8)).join("").concat(String(Date.now()));
+  const state = crypto.getRandomValues(new Uint32Array(4)).join("");
+  sessionStorage.setItem(SESSION_KEYS.verifier, verifier);
+  sessionStorage.setItem(SESSION_KEYS.state, state);
+
+  sha256(verifier).then(challenge => {
+    const params = new URLSearchParams({
+      client_id: COGNITO_CLIENT_ID,
+      response_type: "code",
+      scope: "email openid profile",
+      redirect_uri: COGNITO_REDIRECT_URI,
+      code_challenge_method: "S256",
+      code_challenge: challenge,
+      state: state
+    });
+    window.location.href = COGNITO_DOMAIN + "/oauth2/authorize?" + params.toString();
+  });
+}
+
+function getAccessToken() {
+  const token = sessionStorage.getItem(SESSION_KEYS.access);
+  const expiresAt = Number(sessionStorage.getItem(SESSION_KEYS.expires) || 0);
+  if (!token || Date.now() > expiresAt) return null;
+  return token;
+}
+
+function getCurrentUser() {
+  try {
+    return JSON.parse(sessionStorage.getItem(SESSION_KEYS.user)) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function isLoggedIn() {
+  return Boolean(getAccessToken());
+}
+
+function logout() {
+  sessionStorage.clear();
+  window.location.href = COGNITO_DOMAIN + "/logout?client_id=" + COGNITO_CLIENT_ID +
+    "&logout_uri=" + encodeURIComponent(window.location.origin + "/index.html");
+}
+
+function requireLogin() {
+  if (!isLoggedIn()) {
+    startCognitoLogin();
+    return false;
+  }
+  return true;
+}
+
+function handleUnauthorized(response) {
+  if (response && response.status === 401) {
+    sessionStorage.clear();
+    renderAuthUI();
+    alert("Your session expired or is invalid. Please sign in again.");
+    startCognitoLogin();
+    return true;
+  }
+  return false;
+}
 
 const doctors = [
   {
@@ -286,6 +371,8 @@ function showCart() {
 appointmentForm.addEventListener("submit", async function(event) {
   event.preventDefault();
 
+  if (!requireLogin()) return;
+
   const selectedDoctor = doctors.find(doc => doc.id === doctorSelect.value);
 
   if (!selectedDoctor) {
@@ -315,7 +402,8 @@ appointmentForm.addEventListener("submit", async function(event) {
       const response = await fetch(APPOINTMENT_API_URL, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + getAccessToken()
         },
         body: JSON.stringify(appointment)
       });
@@ -323,6 +411,7 @@ appointmentForm.addEventListener("submit", async function(event) {
       const data = await response.json();
 
       if (!response.ok) {
+        if (handleUnauthorized(response)) return;
         throw new Error(data.message || "Unable to book appointment.");
       }
 
@@ -380,6 +469,8 @@ appointmentForm.addEventListener("submit", async function(event) {
 orderForm.addEventListener("submit", async function(event) {
   event.preventDefault();
 
+  if (!requireLogin()) return;
+
   if (cart.length === 0) {
     alert("Please add at least one medicine to cart.");
     return;
@@ -411,7 +502,8 @@ orderForm.addEventListener("submit", async function(event) {
       const response = await fetch(ORDER_API_URL, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + getAccessToken()
         },
         body: JSON.stringify(orderPayload)
       });
@@ -419,6 +511,7 @@ orderForm.addEventListener("submit", async function(event) {
       const data = await response.json();
 
       if (!response.ok) {
+        if (handleUnauthorized(response)) return;
         throw new Error(data.message || "Unable to place order.");
       }
 
@@ -535,6 +628,45 @@ showMedicines();
 showCart();
 updateHomeStats();
 
+// --- Authentication UI wiring ---
+const loginBtn = document.getElementById("loginBtn");
+const securityBar = document.getElementById("securityBar");
+
+function renderAuthUI() {
+  const loggedIn = isLoggedIn();
+  const user = getCurrentUser();
+
+  if (loginBtn) {
+    loginBtn.textContent = loggedIn ? "🚪 Sign Out" : "🔐 Sign In";
+    loginBtn.classList.toggle("logged-in", loggedIn);
+  }
+
+  if (securityBar) {
+    securityBar.classList.remove("hidden");
+    const secUser = document.getElementById("secUser");
+    if (secUser) {
+      secUser.textContent = loggedIn && user ? "👤 Signed in as " + (user.email || user.username || "User") : "👤 Not signed in";
+    }
+  }
+
+  const guards = document.querySelectorAll("[data-requires-login]");
+  guards.forEach(el => {
+    el.style.display = loggedIn ? "" : "none";
+  });
+}
+
+if (loginBtn) {
+  loginBtn.addEventListener("click", () => {
+    if (isLoggedIn()) {
+      logout();
+    } else {
+      startCognitoLogin();
+    }
+  });
+}
+
+renderAuthUI();
+
 
 // Website loading animation
 window.addEventListener("load", () => {
@@ -592,6 +724,8 @@ if (prescriptionForm) {
   prescriptionForm.addEventListener("submit", async function(event) {
     event.preventDefault();
 
+    if (!requireLogin()) return;
+
     const file = prescriptionFile.files[0];
 
     if (!file) {
@@ -614,7 +748,8 @@ if (prescriptionForm) {
       const urlResponse = await fetch(UPLOAD_URL_API, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + getAccessToken()
         },
         body: JSON.stringify({
           fileName: file.name,
@@ -625,6 +760,7 @@ if (prescriptionForm) {
       const urlData = await urlResponse.json();
 
       if (!urlResponse.ok) {
+        if (handleUnauthorized(urlResponse)) return;
         throw new Error(urlData.message || "Failed to get upload URL.");
       }
 
