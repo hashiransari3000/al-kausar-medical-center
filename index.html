@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Al-Kausar Medical Center</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="preloader" class="preloader">
+    <img src="assets/logo.png" alt="Al-Kausar Logo" />
+    <p>Loading Al-Kausar Medical Center...</p>
+  </div>
+  <header class="topbar">
+    <div class="brand" onclick="openTab('home')">
+      <img src="assets/logo.png" alt="Al-Kausar Logo" />
+      <div>
+        <h2>Al-Kausar Medical Center</h2>
+        <p>Clinic & Pharmacy</p>
+      </div>
+    </div>
+
+    <button id="menuToggle" class="menu-toggle" aria-label="Open menu">☰</button>
+
+    <nav class="nav-tabs" id="navTabs">
+      <button class="tab-btn active" data-tab="home">Home</button>
+      <button class="tab-btn" data-tab="doctors">Doctors</button>
+      <button class="tab-btn" data-tab="appointment">Appointment</button>
+      <button class="tab-btn" data-tab="pharmacy">Pharmacy</button>
+      <button class="tab-btn" data-tab="contact">Contact</button>
+    </nav>
+    <button id="themeToggle" class="theme-toggle" title="Switch theme">🌙 Dark</button>
+  </header>
+
+  <main>
+    <section id="home" class="tab-section active-section">
+      <div class="hero">
+        <div class="hero-text">
+          <span class="pill">Open 7 Days a Week</span>
+          <h1>Complete Healthcare & Pharmacy Services in One Place</h1>
+          <p>
+            Al-Kausar Medical Center provides specialist consultation, easy appointment booking, pharmacy inventory checking, and online medicine ordering for patients.
+          </p>
+          <div class="hero-actions">
+            <button class="primary-btn" onclick="openTab('appointment')">Book Appointment</button>
+            <button class="secondary-btn" onclick="openTab('pharmacy')">Order Medicine</button>
+          </div>
+        </div>
+
+        <div class="hero-logo-card">
+          <img src="assets/logo.png" alt="Al-Kausar Medical Center Logo" />
+          <h3>Al-Kausar Medical Center</h3>
+          <p>Trusted care, specialist doctors, and pharmacy support in one place.</p>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div><h2>4</h2><p>Specialist Doctors</p></div>
+        <div><h2>7</h2><p>Days Available</p></div>
+        <div><h2 id="homeMedicineCount">0</h2><p>Medicines Listed</p></div>
+        <div><h2 id="homeOrderCount">0</h2><p>Online Requests</p></div>
+      </div>
+
+      <section class="content-block featured-care">
+        <div class="featured-text">
+          <span class="pill">Patient First Approach</span>
+          <h2>Care designed around comfort, clarity, and quick access</h2>
+          <p>
+            From consultation to medicine ordering, the website helps patients get information quickly
+            without unnecessary waiting or confusion.
+          </p>
+        </div>
+        <div class="featured-cards">
+          <div>
+            <h3>Clean Appointment Flow</h3>
+            <p>Patients can select doctor, date, slot, and submit details easily.</p>
+          </div>
+          <div>
+            <h3>Smart Pharmacy View</h3>
+            <p>Medicines show stock status, price, category, and cart option.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-block">
+        <h2>Core Services</h2>
+        <div class="service-grid">
+          <div>Cardiology Consultation</div>
+          <div>Gynecology Consultation</div>
+          <div>Neurology Consultation</div>
+          <div>Dermatology Treatment</div>
+          <div>Medicine Home Order</div>
+          <div>Patient Support</div>
+        </div>
+      </section>
+
+      <section class="content-block notice">
+        <h2>Why Choose Al-Kausar?</h2>
+        <p>
+          We focus on timely consultation, clear patient guidance, reliable medicine availability,
+          and a simple booking process for families and individuals.
+        </p>
+      </section>
+    </section>
+
+    <section id="doctors" class="tab-section">
+      <div class="page-title">
+        <h1>Doctor Schedule</h1>
+        <p>View specialists, timings, room numbers, and direct booking options.</p>
+      </div>
+      <div id="doctorCards" class="card-grid"></div>
+    </section>
+
+    <section id="appointment" class="tab-section">
+      <div class="page-title">
+        <h1>Book Appointment</h1>
+        <p>Book your clinic visit by selecting doctor, date, and time slot.</p>
+      </div>
+
+      <div class="two-column">
+        <form id="appointmentForm" class="form-card">
+          <h2>Patient Information</h2>
+          <input type="text" id="patientName" placeholder="Patient Name" required />
+          <input type="tel" id="phone" placeholder="Phone Number" required />
+          <select id="doctorSelect" required>
+            <option value="">Select Doctor</option>
+          </select>
+          <select id="slotSelect" required>
+            <option value="">Select Slot</option>
+          </select>
+          <input type="date" id="date" required />
+          <textarea id="message" placeholder="Symptoms / Message"></textarea>
+          <button type="submit" class="primary-btn">Confirm Appointment</button>
+        </form>
+
+        <div class="info-card">
+          <h2>Appointment Guidelines</h2>
+          <ul>
+            <li>Choose doctor and available slot carefully.</li>
+            <li>Arrive 10 minutes before your appointment.</li>
+            <li>Your booking confirmation will be shown instantly.</li>
+            <li>Our team will contact you for confirmation if required.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="appointmentResult" class="result-box hidden"></div>
+    </section>
+
+    <section id="pharmacy" class="tab-section">
+      <div class="page-title">
+        <h1>Pharmacy Inventory</h1>
+        <p>Search medicine, add available items to cart, and place an online order.</p>
+      </div>
+
+      <div class="search-row">
+        <input type="text" id="medicineSearch" placeholder="Search medicine or category..." />
+        <select id="stockFilter">
+          <option value="all">All Medicines</option>
+          <option value="available">Available Only</option>
+          <option value="out">Out of Stock</option>
+        </select>
+      </div>
+
+      <div class="pharmacy-layout">
+        <div id="medicineCards" class="medicine-grid"></div>
+
+        <aside class="cart-panel">
+          <h2>Medicine Cart</h2>
+          <div id="cartItems" class="cart-items"></div>
+          <div class="cart-total">
+            <span>Total:</span>
+            <strong id="cartTotal">Rs. 0</strong>
+          </div>
+
+          <form id="orderForm" class="order-form">
+            <h3>Order Information</h3>
+            <input type="text" id="customerName" placeholder="Full Name" required />
+            <input type="tel" id="customerContact" placeholder="Contact Number" required />
+            <textarea id="customerAddress" placeholder="Delivery Address" required></textarea>
+            <button type="submit" class="primary-btn full-btn">Place Order</button>
+          </form>
+        </aside>
+      </div>
+
+      <div id="orderResult" class="result-box hidden"></div>
+    </section>
+
+    <section id="contact" class="tab-section">
+      <div class="page-title">
+        <h1>Contact Us</h1>
+        <p>Reach Al-Kausar Medical Center for appointments and pharmacy support.</p>
+      </div>
+
+      <div class="contact-grid">
+        <div class="info-card">
+          <h2>Clinic Details</h2>
+          <p><strong>Address:</strong> Main Road, Karachi, Pakistan</p>
+          <p><strong>Phone:</strong> 0318 0215568</p>
+          <p><strong>WhatsApp:</strong> +92 318 0215568</p>
+          <p><strong>Email:</strong> zaheeruddinansari1@gmail.com</p>
+          <p><strong>Timing:</strong> Monday to Sunday, 10:00 AM - 9:00 PM</p>
+
+          <div class="contact-buttons">
+            <a class="contact-btn call" href="tel:+923180215568">Call Now</a>
+            <a class="contact-btn whatsapp" href="https://wa.me/923180215568" target="_blank">WhatsApp</a>
+            <a class="contact-btn gmail" href="mailto:zaheeruddinansari1@gmail.com">Gmail</a>
+            <a class="contact-btn facebook" href="https://www.facebook.com/Alkausarmedicalcenter/" target="_blank">Facebook</a>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <h2>Clinic Highlights</h2>
+          <p><strong>Specialists:</strong> Cardiology, Gynecology, Neurology, Dermatology</p>
+          <p><strong>Pharmacy:</strong> Medicine availability and ordering</p>
+          <p><strong>Booking:</strong> Online appointment request</p>
+          <p><strong>Support:</strong> Call, WhatsApp, Gmail, and Facebook</p>
+          <p><strong>Care:</strong> Family-friendly medical services</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <img src="assets/logo.png" alt="Al-Kausar Logo" />
+    <p>© 2026 Al-Kausar Medical Center. Clinic & Pharmacy Services.</p>
+  </footer>
+
+  <script src="script-final-no-login.js"></script>
+</body>
+</html>
