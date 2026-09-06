@@ -41,10 +41,16 @@ attacks were run against the live site to prove each control works.
 
 ## 3. New Click-through flow
 1. User opens `https://d3sh4djt5tzbsr.cloudfront.net/`
-2. "Patient Login" → AWS Hosted UI (Cognito) at `alkausar-lab.auth...`
-3. Sign in (PKCE OAuth `code` flow) → redirect back to `/login.html` → token stored
+2. "Patient Login" → in-app sign-in form at `login.html` (Cognito `USER_PASSWORD_AUTH` over HTTPS)
+3. Credentials are sent directly to Amazon Cognito (`InitiateAuth`), which returns the JWTs → tokens stored in `sessionStorage`
 4. Appointment/Order/Prescription forms now attach `Authorization: Bearer <token>`
 5. Logged-out or expired users are redirected to login (401 handling)
+
+> **Why an in-app form instead of the AWS Hosted UI?** The user pool domain for this
+> account was created as Managed Login, which is not available at the Lite (Essentials)
+> tier and mis-renders its `/login` page (`/error`). The in-app form uses the same Cognito
+> pool + app client and the `ALLOW_USER_PASSWORD_AUTH` flow, so authentication is still
+> fully handled by Amazon Cognito and the API remains JWT-protected.
 
 ## 4. Attack scripts & verified results
 

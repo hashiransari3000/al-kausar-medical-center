@@ -5,10 +5,9 @@ const ORDER_API_URL = "https://d3sh4djt5tzbsr.cloudfront.net/api/orders";
 const USE_REAL_ORDER_API = true;
 const UPLOAD_URL_API = "https://d3sh4djt5tzbsr.cloudfront.net/api/upload-url";
 
-// --- Amazon Cognito authentication (login / signup via AWS Hosted UI, PKCE) ---
-const COGNITO_DOMAIN = "https://alkausar-lab.auth.ap-south-1.amazoncognito.com";
-const COGNITO_CLIENT_ID = "m0s0e255m43a8gpf62k69rhjb";
-const COGNITO_REDIRECT_URI = window.location.origin + "/login.html";
+// --- Amazon Cognito authentication (in-app sign-in form, USER_PASSWORD_AUTH flow) ---
+// Users sign in on login.html; credentials go over HTTPS to Cognito, which
+// returns JWTs. login.html stores them; every API call forwards the token.
 const SESSION_KEYS = {
   access: "akmc_access_token",
   id: "akmc_id_token",
@@ -19,30 +18,8 @@ const SESSION_KEYS = {
   state: "akmc_oauth_state"
 };
 
-async function sha256(str) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
-  return btoa(String.fromCharCode(...new Uint8Array(buf)))
-    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
 function startCognitoLogin() {
-  const verifier = crypto.getRandomValues(new Uint32Array(8)).join("").concat(String(Date.now()));
-  const state = crypto.getRandomValues(new Uint32Array(4)).join("");
-  sessionStorage.setItem(SESSION_KEYS.verifier, verifier);
-  sessionStorage.setItem(SESSION_KEYS.state, state);
-
-  sha256(verifier).then(challenge => {
-    const params = new URLSearchParams({
-      client_id: COGNITO_CLIENT_ID,
-      response_type: "code",
-      scope: "email openid profile",
-      redirect_uri: COGNITO_REDIRECT_URI,
-      code_challenge_method: "S256",
-      code_challenge: challenge,
-      state: state
-    });
-    window.location.href = COGNITO_DOMAIN + "/oauth2/authorize?" + params.toString();
-  });
+  window.location.href = window.location.origin + "/login.html";
 }
 
 function getAccessToken() {
@@ -66,8 +43,7 @@ function isLoggedIn() {
 
 function logout() {
   sessionStorage.clear();
-  window.location.href = COGNITO_DOMAIN + "/logout?client_id=" + COGNITO_CLIENT_ID +
-    "&logout_uri=" + encodeURIComponent(window.location.origin + "/index.html");
+  window.location.href = window.location.origin + "/index.html";
 }
 
 function requireLogin() {

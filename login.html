@@ -3,121 +3,148 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Signing In - Al-Kausar Medical Center</title>
+  <title>Sign In - Al-Kausar Medical Center</title>
   <link rel="stylesheet" href="style.css" />
   <style>
-    body.auth-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-    .auth-card { max-width: 460px; text-align: center; padding: 2rem; }
+    body.auth-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--soft); }
+    .auth-card { max-width: 420px; width: 100%; text-align: center; padding: 2rem; }
     .auth-card img { width: 96px; margin-bottom: 1rem; }
+    .auth-card .form-group { text-align: left; margin: .8rem 0; }
+    .auth-card label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: .35rem; }
+    .auth-card input { width: 100%; padding: .7rem; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; background: var(--card-bg, #fff); color: var(--text, #111); }
+    .auth-card .primary-btn { width: 100%; padding: .8rem; margin-top: .5rem; }
+    .error-msg { color: #c62828; min-height: 1.2em; font-size: .9rem; margin-top: .6rem; }
+    .hint { margin-top: 1rem; font-size: .85rem; color: var(--muted); }
+    .sec-badges { display: flex; gap: .4rem; justify-content: center; flex-wrap: wrap; margin-top: 1.2rem; }
   </style>
 </head>
 <body class="auth-page">
-  <div class="auth-card card" id="statusCard">
+  <div class="auth-card card">
     <img src="assets/logo.png" alt="Al-Kausar Logo" />
-    <h1>Secure Sign-In</h1>
-    <p id="authMessage">Completing secure login with Amazon Cognito...</p>
+    <h1>Sign In</h1>
+    <p style="margin:.2rem 0 1.2rem; color: var(--muted);">Al-Kausar Medical Center</p>
+
+    <form id="loginForm" novalidate>
+      <div class="form-group">
+        <label for="username">Email or username</label>
+        <input id="username" type="text" required autocomplete="username" placeholder="demo.patient@alkausar.com" />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input id="password" type="password" required autocomplete="current-password" placeholder="Your password" />
+      </div>
+      <button type="submit" class="primary-btn">Sign In</button>
+      <div id="loginError" class="error-msg"></div>
+    </form>
+
+    <p class="hint">Demo account: <strong>demo.patient@alkausar.com</strong><br />Password: <strong>Demo@12345</strong></p>
+    <p class="hint"><a href="index.html">&larr; Back to site</a></p>
+
+    <div class="sec-badges">
+      <span class="sec-badge">🔐 Cognito Auth</span>
+      <span class="sec-badge">🛡️ JWT Protected API</span>
+      <span class="sec-badge">🔒 HTTPS</span>
+    </div>
   </div>
 
   <script>
-    // --- Amazon Cognito login callback handler (PKCE / authorization code flow) ---
-    (function () {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get("code");
-      const state = params.get("state");
-      const error = params.get("error");
-      const messageEl = document.getElementById("authMessage");
+    // --- In-app login with Amazon Cognito (USER_PASSWORD_AUTH flow) ---
+    // Credentials are sent over HTTPS directly to Cognito; the API stays
+    // protected by the Cognito JWT authorizer.
+    const CLIENT_ID = "m0s0e255m43a8gpf62k69rhjb";
+    const ENDPOINT = "https://cognito-idp.ap-south-1.amazonaws.com/";
+    const SESSION_KEYS = {
+      access: "akmc_access_token",
+      id: "akmc_id_token",
+      refresh: "akmc_refresh_token",
+      expires: "akmc_token_expires",
+      user: "akmc_user",
+      verifier: "akmc_code_verifier",
+      state: "akmc_oauth_state"
+    };
 
-      const SESSION_KEYS = {
-        access: "akmc_access_token",
-        id: "akmc_id_token",
-        refresh: "akmc_refresh_token",
-        expires: "akmc_token_expires",
-        user: "akmc_user",
-        verifier: "akmc_code_verifier",
-        state: "akmc_oauth_state"
-      };
+    const form = document.getElementById("loginForm");
+    const errEl = document.getElementById("loginError");
+    const usernameEl = document.getElementById("username");
+    const passwordEl = document.getElementById("password");
+    const btn = form.querySelector("button[type='submit']");
 
-      function fail(msg) {
-        messageEl.textContent = msg;
-        messageEl.style.color = "#c62828";
-      }
+    function setError(msg) { errEl.textContent = msg || ""; }
 
-      if (error) {
-        fail("Login was not completed: " + error + ". Please try again.");
-        return;
-      }
+    function decodeJwtPayload(token) {
+      try {
+        const b = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+        return JSON.parse(atob(b));
+      } catch (e) { return {}; }
+    }
 
-      // Verify state to prevent CSRF on the OAuth callback
-      const savedState = sessionStorage.getItem(SESSION_KEYS.state);
-      if (state && savedState && state !== savedState) {
-        fail("State mismatch detected. The login request may have been tampered with.");
-        return;
-      }
-      sessionStorage.removeItem(SESSION_KEYS.state);
-
-      const verifier = sessionStorage.getItem(SESSION_KEYS.verifier);
-      sessionStorage.removeItem(SESSION_KEYS.verifier);
-
-      const COGNITO_DOMAIN = "https://alkausar-lab.auth.ap-south-1.amazoncognito.com";
-      const CLIENT_ID = "m0s0e255m43a8gpf62k69rhjb";
-      const REDIRECT_URI = window.location.origin + "/login.html";
-
-      async function storeTokens(data) {
-        sessionStorage.setItem(SESSION_KEYS.access, data.access_token);
-        sessionStorage.setItem(SESSION_KEYS.id, data.id_token);
-        if (data.refresh_token) sessionStorage.setItem(SESSION_KEYS.refresh, data.refresh_token);
-        sessionStorage.setItem(SESSION_KEYS.expires, String(Date.now() + data.expires_in * 1000));
-
-        // Decode id_token payload for display (email, username, etc.)
-        try {
-          const payload = JSON.parse(atob(data.id_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-          sessionStorage.setItem(SESSION_KEYS.user, JSON.stringify({
-            email: payload.email,
-            username: payload["cognito:username"],
-            name: payload.name || payload.email,
-            exp: payload.exp
-          }));
-        } catch (e) {
-          sessionStorage.setItem(SESSION_KEYS.user, JSON.stringify({ email: "", username: "" }));
-        }
-      }
-
-      if (code) {
-        if (!verifier) {
-          fail("Missing code verifier. Please start login again from the site.");
-          return;
-        }
-
-        fetch(COGNITO_DOMAIN + "/oauth2/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            grant_type: "authorization_code",
-            client_id: CLIENT_ID,
-            code: code,
-            redirect_uri: REDIRECT_URI,
-            code_verifier: verifier
-          })
+    async function signIn(username, password) {
+      const res = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-amz-json-1.1",
+          "X-Amz-Target": "AWSCognitoIdentityProviderService.InitiateAuth",
+          "X-Amz-User-Agent": "aws-amplify/0.1.x js"
+        },
+        body: JSON.stringify({
+          AuthFlow: "USER_PASSWORD_AUTH",
+          ClientId: CLIENT_ID,
+          AuthParameters: { USERNAME: username, PASSWORD: password }
         })
-          .then(async (res) => {
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error_description || data.error || "Token exchange failed");
-            return data;
-          })
-          .then(async (data) => {
-            await storeTokens(data);
-            window.location.replace(window.location.origin + "/index.html");
-          })
-          .catch((err) => {
-            fail("Could not complete login: " + err.message);
-          });
-      } else {
-        messageEl.textContent = "No login code found. Redirecting you to sign in...";
-        setTimeout(() => {
-          window.location.replace(window.location.origin + "/index.html");
-        }, 1500);
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const err = new Error(data.message || data.code || "Sign-in failed");
+        err.code = data.__type || "";
+        throw err;
       }
-    })();
+      const auth = data.AuthenticationResult;
+      if (!auth || !auth.AccessToken) throw new Error("No session was returned.");
+
+      sessionStorage.setItem(SESSION_KEYS.access, auth.AccessToken);
+      if (auth.IdToken) sessionStorage.setItem(SESSION_KEYS.id, auth.IdToken);
+      if (auth.RefreshToken) sessionStorage.setItem(SESSION_KEYS.refresh, auth.RefreshToken);
+      sessionStorage.setItem(SESSION_KEYS.expires, String(Date.now() + auth.ExpiresIn * 1000));
+
+      const payload = decodeJwtPayload(auth.IdToken || auth.AccessToken);
+      sessionStorage.setItem(SESSION_KEYS.user, JSON.stringify({
+        email: payload.email,
+        username: payload["cognito:username"],
+        name: payload.name || payload.email,
+        exp: payload.exp
+      }));
+
+      window.location.replace(window.location.origin + "/index.html");
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      setError("");
+      const username = usernameEl.value.trim();
+      const password = passwordEl.value;
+      if (!username || !password) { setError("Please enter your email and password."); return; }
+
+      btn.disabled = true;
+      btn.textContent = "Signing in...";
+      try {
+        await signIn(username, password);
+      } catch (err) {
+        const m = err.message || "Sign-in failed.";
+        setError(
+          /NotAuthorizedException|Incorrect username or password/i.test(m) ? "Incorrect username or password." :
+          /UserNotFoundException/i.test(m)                       ? "No account found for that email." :
+          /PasswordResetRequiredException/i.test(m)              ? "Password reset is required for this account." :
+          /TooManyRequests|Throttling/i.test(m)                  ? "Too many attempts. Wait a few minutes and try again." :
+          /NetworkError|Failed to fetch/i.test(m)                ? "Could not reach the authentication service. Check your connection." :
+          m
+        );
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Sign In";
+      }
+    });
+
+    usernameEl.focus();
   </script>
 </body>
 </html>
