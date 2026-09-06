@@ -1,0 +1,27 @@
+============================================================
+ATTACK 9: Broken Authentication / Session Security
+Expect: forged/expired/foreign/replayed sessions are all 401
+         by the Cognito JWT authorizer.
+============================================================
+
+-- 9a. Forged token with 'exp' in the past --
+   expired-claim token      -> HTTP 401 (401 = signature/expiry rejected)
+
+-- 9b. Replay of a VALID token belonging to a different user --
+   own-token identity       -> user=9123dd9a-10e1-70ef-66df-d04a6c2133a2, HTTP 400 (identity is fixed to the token)
+
+-- 9c. Garbage, truncated, and replayed-after-logout tokens --
+   token='aaaa.bbbb.cccc'   -> HTTP 401
+   token='eyJraWQiOiJTOWJQQTFmQm41ekVNWERML2t'   -> HTTP 401
+   token='Bearer'   -> HTTP 401
+   token=''   -> HTTP 401
+
+-- 9d. Simulated logout then reuse --
+   (client clears sessionStorage on logout; the short-lived 1h access
+    token expires automatically => a captured token has limited value)
+   access-token lifetime   -> 3600 seconds (1 hour, then auto-expiry)
+
+RESULT: forged/expired/garbage tokens rejected with 401; tokens bind to one
+identity; lifetime is capped at 1h with expiry enforced => session replay,
+token theft, and indefinite session abuse are blocked.
+

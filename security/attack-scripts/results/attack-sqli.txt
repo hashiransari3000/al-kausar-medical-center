@@ -1,0 +1,14 @@
+============================================================
+ATTACK 2: SQL Injection -> API Gateway /appointments
+Expect: AWS WAF blocks with HTTP 403 (or 400 from Lambda)
+============================================================
+  payload 1: 1' OR '1'='1                                            -> HTTP 403
+  payload 2: 1; DROP TABLE appointments; --                          -> HTTP 403
+  payload 3: admin' --                                               -> HTTP 403
+  payload 4: ' UNION SELECT username,password FROM users--           -> HTTP 403
+  payload 5: 1' AND SLEEP(5)--                                       -> HTTP 403
+  payload 6: ' OR 1=1 /*                                             -> HTTP 403
+  body SQLi: patientName=' OR 1=1--                                  -> HTTP 403 (400 = validated by Lambda)
+
+Result: 403 = WAF blocked. 400 = Lambda validation rejected. No 200 = data safe.
+

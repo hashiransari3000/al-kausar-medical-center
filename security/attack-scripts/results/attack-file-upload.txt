@@ -1,0 +1,31 @@
+============================================================
+ATTACK 7: Insecure File Upload
+Attacker attempts to get an upload URL for malicious payloads.
+Expect: every attempt rejected (400) - no URL issued
+============================================================
+
+-- 7a. Executable / script file types --
+   shell.php (PHP shell)                                   -> HTTP 400 | {"message":"fileType must be one of: image/jpeg, image/png, application/pdf"}
+   cmd.exe (Windows exe)                                   -> HTTP 400 | {"message":"fileType must be one of: image/jpeg, image/png, application/pdf"}
+   malware.js (JS)                                         -> HTTP 400 | {"message":"fileType must be one of: image/jpeg, image/png, application/pdf"}
+   evil.html (HTML)                                        -> HTTP 400 | {"message":"fileType must be one of: image/jpeg, image/png, application/pdf"}
+
+-- 7b. Allowed type but forbidden/oversized payload --
+   6 MB PNG (over 5 MB cap)                                -> HTTP 400 | {"message":"fileSize must be between 1 byte and 5 MB"}
+   x.png.js (double extension)                             -> HTTP 400 | {"message":"fileName must end in .jpg, .jpeg, .png, or .pdf"}
+   x.txt spoofed as jpeg                                   -> HTTP 400 | {"message":"fileName must end in .jpg, .jpeg, .png, or .pdf"}
+
+-- 7c. Path traversal in filename --
+   path traversal ../../.env                               -> HTTP 403 | <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4
+   encoded traversal                                       -> HTTP 403 | <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4
+
+-- 7d. Sanity check: a VALID request still works (contrast) --
+   VALID rx.png (allowed)                                  -> HTTP 200 | {"uploadUrl":"https://alkausar-prescriptions-hashir.s3.ap-south-1.amazonaws.com/prescripti
+
+-- 7e. Confirm the object-store is PRIVATE (no public read) --
+   GET private object URL -> HTTP 403 (AccessDenied = private)
+
+RESULT: only allow-listed image/pdf types under 5 MB get an upload
+URL; executable/oversized/traversal payloads are all rejected; the
+bucket is private so even a guessed key is inaccessible.
+

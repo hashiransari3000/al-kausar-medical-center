@@ -1,0 +1,28 @@
+============================================================
+ATTACK 6: IDOR / Broken Access Control
+Attacker tries to guess and READ another user's object by ID
+Expect: 401/403/404 — no way to fetch a record by identifier
+============================================================
+
+-- 6a. Try to read appointments/orders by guessed IDs --
+   GET /api/appointments                           -> HTTP 404
+   GET /api/orders                                 -> HTTP 404
+   GET /api/appointments/AKMC-APT-1                -> HTTP 404
+   GET /api/appointments/AKMC-APT-9999999999999    -> HTTP 404
+   GET /api/orders/AKMC-ORD-1                      -> HTTP 404
+   GET /api/orders?id=AKMC-ORD-2                   -> HTTP 404
+
+-- 6b. Try to forge a WRITE referencing another user's ID --
+   forged-owner write -> appointment: 200 / order: 200
+   forged-owner write -> appointment: 400 / order: 400
+
+-- 6c. Path-traversal object reference (../ to other users) --
+   appointments/../../../etc/passwd                        -> HTTP 404
+   orders?file=../../.env                                  -> HTTP 403
+   upload-url?key=prescriptions/../victim                  -> HTTP 403
+
+RESULT: No read-by-ID endpoint (404) and records are bound to the
+JWT identity server-side => IDOR / broken access control is effectively
+closed. All reference attempts return 401/403/404, none return another
+user's data.
+

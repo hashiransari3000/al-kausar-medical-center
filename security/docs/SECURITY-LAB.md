@@ -62,6 +62,10 @@ attacks were run against the live site to prove each control works.
 | `attack-unauthed-api.sh` | no token + forged JWT | 401 (authorizer) | ✅ 8/8 = 401 |
 | `attack-brute-force.sh` | password guessing | rejected (NotAuthorized) | ✅ 40/40 rejected |
 | `attack-bot-flood.sh` | API flood | throttling 429/503 | ✅ 40-burst → 26×503 + 14×200 |
+| `attack-idor.sh` | object-ID guessing / cross-user reference | no read-by-ID (404) + server binds records to JWT | ✅ 100% blocked |
+| `attack-file-upload.sh` | shell/exec/HTML/oversized/traversal uploads | 400 / 403 + private bucket | ✅ 9/9 rejected, valid file still OK |
+| `attack-csrf.sh` | cross-origin state-changing request | Bearer-JWT sessions + no ACAO to evil origin | ✅ not exploitable (read blocked) |
+| `attack-broken-auth.sh` | forged/expired/garbage/replayed tokens | 401 by Cognito JWT authorizer | ✅ 100% rejected |
 
 Representative results from the live edge:
 

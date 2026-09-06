@@ -1,0 +1,15 @@
+============================================================
+ATTACK 5: API flood (1 requests, concurrency 5)
+Expect: some 200, then throttle responses (429/503) as the
+        API Gateway rate limit protects the backend
+============================================================
+      1 401
+
+Status codes seen:
+  200 = request processed normally
+  401 = blocked by JWT authorizer (no/invalid token)
+  429/503 = REJECTED by API Gateway throttling / WAF
+
+=== API Gateway 5xx (throttling) metric, last 15 min ===
+    5xx datapoint: 0.0
+    5xx datapoint: 0.0

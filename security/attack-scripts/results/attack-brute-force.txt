@@ -1,0 +1,13 @@
+============================================================
+ATTACK 3: Brute-force password guessing against Cognito
+Target user: 1 | Attempts: 5
+Expect: failures (NotAuthorized), then Cognito throttling
+============================================================
+  attempt 1: wrong password -> NotAuthorized
+  attempt 2: wrong password -> NotAuthorized
+  attempt 3: wrong password -> NotAuthorized
+  attempt 4: wrong password -> NotAuthorized
+  attempt 5: wrong password -> NotAuthorized
+
+RESULT: Every wrong password was rejected; add more rapid attempts to trigger throttle.
+

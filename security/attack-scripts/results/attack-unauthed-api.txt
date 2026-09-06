@@ -1,0 +1,17 @@
+============================================================
+ATTACK 4: Unauthenticated & forged-token API calls
+Expect: HTTP 401 Unauthorized (blocked by JWT authorizer)
+============================================================
+-- No token --
+   POST /api/appointments   -> HTTP 401
+   POST /api/orders         -> HTTP 401
+   POST /api/upload-url     -> HTTP 401
+-- Invalid (forged) JWT --
+   POST /api/appointments   -> HTTP 401
+   POST /api/orders         -> HTTP 401
+   POST /api/upload-url     -> HTTP 401
+-- Replay of an expired/impossible signature --
+   POST /api/appointments (garbage) -> HTTP 401
+
+Result: every request WITHOUT a valid AWS-issued token is rejected.
+
