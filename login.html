@@ -14,30 +14,86 @@
     .auth-card input { width: 100%; padding: .7rem; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; background: var(--card-bg, #fff); color: var(--text, #111); }
     .auth-card .primary-btn { width: 100%; padding: .8rem; margin-top: .5rem; }
     .error-msg { color: #c62828; min-height: 1.2em; font-size: .9rem; margin-top: .6rem; }
+    .success-msg { color: #2e7d32; min-height: 1.2em; font-size: .9rem; margin-top: .6rem; }
     .hint { margin-top: 1rem; font-size: .85rem; color: var(--muted); }
     .sec-badges { display: flex; gap: .4rem; justify-content: center; flex-wrap: wrap; margin-top: 1.2rem; }
+    .tabs { display: flex; gap: .5rem; justify-content: center; margin-bottom: 1rem; }
+    .tabs button { flex: 1; padding: .55rem; border-radius: 8px; border: 1px solid var(--border); background: transparent; cursor: pointer; font-weight: 600; color: var(--muted); }
+    .tabs button.active { background: var(--primary, #0c66a4); color: #fff; border-color: var(--primary, #0c66a4); }
+    .step { display: none; }
+    .step.active { display: block; }
+    a.link { cursor: pointer; color: var(--primary, #0c66a4); text-decoration: underline; }
   </style>
 </head>
 <body class="auth-page">
   <div class="auth-card card">
     <img src="assets/logo.png" alt="Al-Kausar Logo" />
-    <h1>Sign In</h1>
-    <p style="margin:.2rem 0 1.2rem; color: var(--muted);">Al-Kausar Medical Center</p>
+    <h1>Al-Kausar Medical Center</h1>
+    <p style="margin:.2rem 0 1.2rem; color: var(--muted);">Book appointments &amp; orders securely</p>
 
-    <form id="loginForm" novalidate>
-      <div class="form-group">
-        <label for="username">Email or username</label>
-        <input id="username" type="text" required autocomplete="username" placeholder="demo.patient@alkausar.com" />
-      </div>
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input id="password" type="password" required autocomplete="current-password" placeholder="Your password" />
-      </div>
-      <button type="submit" class="primary-btn">Sign In</button>
-      <div id="loginError" class="error-msg"></div>
-    </form>
+    <div class="tabs">
+      <button id="tabSignIn" class="active" type="button">Sign In</button>
+      <button id="tabSignUp" type="button">Create Account</button>
+    </div>
 
-    <p class="hint">Demo account: <strong>demo.patient@alkausar.com</strong><br />Password: <strong>Demo@12345</strong></p>
+    <!-- ============ SIGN IN ============ -->
+    <div id="stepSignIn" class="step active">
+      <form id="loginForm" novalidate>
+        <div class="form-group">
+          <label for="username">Email</label>
+          <input id="username" type="text" required autocomplete="username" placeholder="you@example.com" />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input id="password" type="password" required autocomplete="current-password" placeholder="Your password" />
+        </div>
+        <button type="submit" class="primary-btn">Sign In</button>
+        <div id="loginError" class="error-msg"></div>
+      </form>
+    </div>
+
+    <!-- ============ CREATE ACCOUNT ============ -->
+    <div id="stepSignUp" class="step">
+      <form id="signupForm" novalidate>
+        <div class="form-group">
+          <label for="suName">Full name</label>
+          <input id="suName" type="text" autocomplete="name" placeholder="e.g. Hashir Salam" />
+        </div>
+        <div class="form-group">
+          <label for="suEmail">Email</label>
+          <input id="suEmail" type="email" required autocomplete="email" placeholder="you@example.com" />
+        </div>
+        <div class="form-group">
+          <label for="suPassword">Password</label>
+          <input id="suPassword" type="password" required autocomplete="new-password" placeholder="8+ chars with letters, numbers &amp; symbols" />
+        </div>
+        <div class="form-group">
+          <label for="suPassword2">Confirm password</label>
+          <input id="suPassword2" type="password" required autocomplete="new-password" placeholder="Repeat your password" />
+        </div>
+        <button type="submit" class="primary-btn">Create Account</button>
+        <div id="signupError" class="error-msg"></div>
+      </form>
+    </div>
+
+    <!-- ============ VERIFY EMAIL ============ -->
+    <div id="stepVerify" class="step">
+      <p style="color: var(--muted); margin:.4rem 0 1rem;">
+        We sent a 6-digit verification code to<br /><strong id="verifyEmailDest" style="color:var(--text);"></strong>
+      </p>
+      <form id="verifyForm" novalidate>
+        <div class="form-group">
+          <label for="verificationCode">Verification code</label>
+          <input id="verificationCode" type="text" inputmode="numeric" autocomplete="one-time-code" required placeholder="6-digit code" maxlength="6" />
+        </div>
+        <button type="submit" class="primary-btn">Verify Email</button>
+        <div id="verifyError" class="error-msg"></div>
+        <div id="verifySuccess" class="success-msg"></div>
+      </form>
+      <p class="hint">Didn't get it? <a class="link" id="resendCode">Resend code</a> &nbsp;•&nbsp; <a class="link" id="backToSignup">Use another email</a></p>
+    </div>
+
+    <p class="hint">Demo account: <strong>demo.patient@alkausar.com</strong> / <strong>Demo@12345</strong></p>
     <p class="hint"><a href="index.html">&larr; Back to site</a></p>
 
     <div class="sec-badges">
@@ -48,8 +104,9 @@
   </div>
 
   <script>
-    // --- In-app login with Amazon Cognito (USER_PASSWORD_AUTH flow) ---
-    // Credentials are sent over HTTPS directly to Cognito; the API stays
+    // --- In-app authentication with Amazon Cognito ---
+    // Sign up with email -> verification code by email -> confirm -> sign in.
+    // All credential traffic goes over HTTPS straight to Cognito; the API stays
     // protected by the Cognito JWT authorizer.
     const CLIENT_ID = "m0s0e255m43a8gpf62k69rhjb";
     const ENDPOINT = "https://cognito-idp.ap-south-1.amazonaws.com/";
@@ -58,19 +115,22 @@
       id: "akmc_id_token",
       refresh: "akmc_refresh_token",
       expires: "akmc_token_expires",
-      user: "akmc_user",
-      verifier: "akmc_code_verifier",
-      state: "akmc_oauth_state"
+      user: "akmc_user"
     };
 
-    const form = document.getElementById("loginForm");
-    const errEl = document.getElementById("loginError");
-    const usernameEl = document.getElementById("username");
-    const passwordEl = document.getElementById("password");
-    const btn = form.querySelector("button[type='submit']");
+    const $ = (id) => document.getElementById(id);
+    const steps = { signIn: $("stepSignIn"), signUp: $("stepSignUp"), verify: $("stepVerify") };
 
-    function setError(msg) { errEl.textContent = msg || ""; }
+    let pendingEmail = null;    // email used in the current sign-up / verify session
+    let pendingPassword = null; // kept in memory only, never written to storage
 
+    function showStep(name) {
+      Object.values(steps).forEach(s => s.classList.toggle("active", s.id === "step" + name[0].toUpperCase() + name.slice(1)));
+      $("tabSignIn").classList.toggle("active", name === "signIn");
+      $("tabSignUp").classList.toggle("active", name === "signUp");
+    }
+
+    function setError(el, msg) { el.textContent = msg || ""; }
     function decodeJwtPayload(token) {
       try {
         const b = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
@@ -78,26 +138,48 @@
       } catch (e) { return {}; }
     }
 
-    async function signIn(username, password) {
+    async function callCognito(target, body) {
       const res = await fetch(ENDPOINT, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-amz-json-1.1",
-          "X-Amz-Target": "AWSCognitoIdentityProviderService.InitiateAuth",
+          "X-Amz-Target": "AWSCognitoIdentityProviderService." + target,
           "X-Amz-User-Agent": "aws-amplify/0.1.x js"
         },
-        body: JSON.stringify({
-          AuthFlow: "USER_PASSWORD_AUTH",
-          ClientId: CLIENT_ID,
-          AuthParameters: { USERNAME: username, PASSWORD: password }
-        })
+        body: JSON.stringify(body)
       });
       const data = await res.json();
       if (!res.ok) {
-        const err = new Error(data.message || data.code || "Sign-in failed");
+        const err = new Error(data.message || data.code || "Request failed");
         err.code = data.__type || "";
         throw err;
       }
+      return data;
+    }
+
+    function friendlyMessage(err) {
+      const m = err.message || "";
+      if (/NotAuthorized|Incorrect username or password/i.test(m)) return "Incorrect email or password.";
+      if (/UserNotFoundException/.test(m) && /signUp|Resend|confirm/i.test(err.code || "")) return "No pending sign-up found for this email.";
+      if (/UserNotFoundException/i.test(m)) return "No account found for that email. Create one above.";
+      if (/PasswordResetRequiredException/i.test(m)) return "A password reset is required for this account.";
+      if (/UsernameExistsException/i.test(m)) return "This email is already registered. Try signing in, or check your inbox for a verification code.";
+      if (/InvalidPasswordException/i.test(m)) return "Password doesn't meet the policy: 8+ characters with upper/lowercase letters, a number and a symbol.";
+      if (/CodeMismatchException/i.test(m)) return "Incorrect code. Check the email and try again.";
+      if (/ExpiredCodeException/i.test(m)) return "That code expired. Please resend a new one.";
+      if (/LimitExceededException|TooManyFailedAttempts|TooManyRequests/i.test(m)) return "Too many attempts. Please wait a few minutes and try again.";
+      if (/InvalidEmailRoleAccessPolicy/i.test(m)) return "We couldn't send the verification email right now. Please try again later.";
+      if (/NetworkError|Failed to fetch/i.test(m)) return "Could not reach the authentication service. Check your connection.";
+      return m;
+    }
+
+    // ---------------- Sign in ----------------
+    async function signIn(username, password) {
+      const data = await callCognito("InitiateAuth", {
+        AuthFlow: "USER_PASSWORD_AUTH",
+        ClientId: CLIENT_ID,
+        AuthParameters: { USERNAME: username, PASSWORD: password }
+      });
       const auth = data.AuthenticationResult;
       if (!auth || !auth.AccessToken) throw new Error("No session was returned.");
 
@@ -108,43 +190,117 @@
 
       const payload = decodeJwtPayload(auth.IdToken || auth.AccessToken);
       sessionStorage.setItem(SESSION_KEYS.user, JSON.stringify({
-        email: payload.email,
-        username: payload["cognito:username"],
-        name: payload.name || payload.email,
+        email: payload.email || username,
+        username: payload["cognito:username"] || username,
+        name: payload.name || payload.email || username,
         exp: payload.exp
       }));
-
       window.location.replace(window.location.origin + "/index.html");
     }
 
-    form.addEventListener("submit", async (e) => {
+    $("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      setError("");
-      const username = usernameEl.value.trim();
-      const password = passwordEl.value;
-      if (!username || !password) { setError("Please enter your email and password."); return; }
+      setError($("loginError"));
+      const username = $("username").value.trim();
+      const password = $("password").value;
+      if (!username || !password) { setError($("loginError"), "Please enter your email and password."); return; }
+      const btn = $("loginForm").querySelector(".primary-btn");
+      btn.disabled = true; btn.textContent = "Signing in...";
+      try { await signIn(username, password); }
+      catch (err) { setError($("loginError"), friendlyMessage(err)); }
+      finally { btn.disabled = false; btn.textContent = "Sign In"; }
+    });
 
-      btn.disabled = true;
-      btn.textContent = "Signing in...";
+    // ---------------- Sign up ----------------
+    function goToVerify(email, password) {
+      pendingEmail = email;
+      pendingPassword = password;
+      $("verifyEmailDest").textContent = email;
+      setError($("verifyError"));
+      setError($("verifySuccess"));
+      showStep("verify");
+      $("verificationCode").focus();
+    }
+
+    $("signupForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      setError($("signupError"));
+      const name = $("suName").value.trim();
+      const email = $("suEmail").value.trim().toLowerCase();
+      const p1 = $("suPassword").value;
+      const p2 = $("suPassword2").value;
+      if (!email || !p1) { setError($("signupError"), "Please fill in your email and password."); return; }
+      if (p1 !== p2) { setError($("signupError"), "Passwords do not match."); return; }
+      const btn = $("signupForm").querySelector(".primary-btn");
+      btn.disabled = true; btn.textContent = "Creating account...";
       try {
-        await signIn(username, password);
+        const attrs = [{ Name: "email", Value: email }];
+        if (name) attrs.push({ Name: "name", Value: name });
+        await callCognito("SignUp", { ClientId: CLIENT_ID, Username: email, Password: p1, UserAttributes: attrs, ClientMetadata: {} });
+        goToVerify(email, p1);
       } catch (err) {
-        const m = err.message || "Sign-in failed.";
-        setError(
-          /NotAuthorizedException|Incorrect username or password/i.test(m) ? "Incorrect username or password." :
-          /UserNotFoundException/i.test(m)                       ? "No account found for that email." :
-          /PasswordResetRequiredException/i.test(m)              ? "Password reset is required for this account." :
-          /TooManyRequests|Throttling/i.test(m)                  ? "Too many attempts. Wait a few minutes and try again." :
-          /NetworkError|Failed to fetch/i.test(m)                ? "Could not reach the authentication service. Check your connection." :
-          m
-        );
+        if (/UsernameExistsException/.test(err.code || "")) {
+          // Maybe already confirmed -> try sign in, or existing unconfirmed -> go verify
+          setError($("signupError"), "This email is already registered. Try signing in instead.");
+        } else {
+          setError($("signupError"), friendlyMessage(err));
+        }
       } finally {
-        btn.disabled = false;
-        btn.textContent = "Sign In";
+        btn.disabled = false; btn.textContent = "Create Account";
       }
     });
 
-    usernameEl.focus();
+    // ---------------- Verify email ----------------
+    $("verifyForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      setError($("verifyError"));
+      setError($("verifySuccess"));
+      const code = $("verificationCode").value.trim();
+      if (!code || code.length !== 6) { setError($("verifyError"), "Enter the 6-digit code from your email."); return; }
+      const btn = $("verifyForm").querySelector(".primary-btn");
+      btn.disabled = true; btn.textContent = "Verifying...";
+      try {
+        await callCognito("ConfirmSignUp", { ClientId: CLIENT_ID, Username: pendingEmail, ConfirmationCode: code });
+        setError($("verifyError"));
+        setError($("verifySuccess"), "Email verified! Signing you in...");
+        if (pendingEmail && pendingPassword) {
+          window.setTimeout(() => signIn(pendingEmail, pendingPassword).catch(err => {
+            showStep("signIn");
+            $("username").value = pendingEmail;
+            setError($("loginError"), friendlyMessage(err) + " Try signing in now.");
+          }), 600);
+        } else {
+          showStep("signIn");
+          $("username").value = pendingEmail;
+        }
+      } catch (err) {
+        setError($("verifyError"), friendlyMessage(err));
+      } finally {
+        btn.disabled = false; btn.textContent = "Verify Email";
+      }
+    });
+
+    $("resendCode").addEventListener("click", async () => {
+      setError($("verifyError")); setError($("verifySuccess"));
+      const link = $("resendCode");
+      link.textContent = "Sending...";
+      try {
+        await callCognito("ResendConfirmationCode", { ClientId: CLIENT_ID, Username: pendingEmail });
+        setError($("verifySuccess"), "A new code was sent to " + pendingEmail + ".");
+      } catch (err) {
+        setError($("verifyError"), friendlyMessage(err));
+      } finally {
+        link.textContent = "Resend code";
+      }
+    });
+
+    $("backToSignup").addEventListener("click", () => { showStep("signUp"); });
+
+    // ---------------- Tabs ----------------
+    $("tabSignIn").addEventListener("click", () => { showStep("signIn"); setError($("loginError")); });
+    $("tabSignUp").addEventListener("click", () => { showStep("signUp"); setError($("signupError")); });
+
+    $("username").focus();
   </script>
 </body>
 </html>

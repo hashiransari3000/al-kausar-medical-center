@@ -41,10 +41,11 @@ attacks were run against the live site to prove each control works.
 
 ## 3. New Click-through flow
 1. User opens `https://d3sh4djt5tzbsr.cloudfront.net/`
-2. "Patient Login" → in-app sign-in form at `login.html` (Cognito `USER_PASSWORD_AUTH` over HTTPS)
-3. Credentials are sent directly to Amazon Cognito (`InitiateAuth`), which returns the JWTs → tokens stored in `sessionStorage`
-4. Appointment/Order/Prescription forms now attach `Authorization: Bearer <token>`
-5. Logged-out or expired users are redirected to login (401 handling)
+2. "Patient Login" → in-app auth page at `login.html` with **Sign In** and **Create Account** tabs (Cognito `USER_PASSWORD_AUTH` / `SignUp` over HTTPS)
+3. **New users:** sign up with email + password → Cognito emails a 6-digit verification code → enter code (`ConfirmSignUp`) → auto sign-in
+4. Credentials are sent directly to Amazon Cognito (`InitiateAuth`/`SignUp`/`ConfirmSignUp`), which returns the JWTs → tokens stored in `sessionStorage`
+5. Appointment/Order/Prescription forms now attach `Authorization: Bearer <token>`
+6. Logged-out or expired users are redirected to login (401 handling)
 
 > **Why an in-app form instead of the AWS Hosted UI?** The user pool domain for this
 > account was created as Managed Login, which is not available at the Lite (Essentials)
