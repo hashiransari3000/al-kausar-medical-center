@@ -28,6 +28,7 @@
       <button class="tab-btn" data-tab="doctors">Doctors</button>
       <button class="tab-btn" data-tab="appointment">Appointment</button>
       <button class="tab-btn" data-tab="pharmacy">Pharmacy</button>
+      <button class="tab-btn" data-tab="prescription">Prescription Upload</button>
       <button class="tab-btn" data-tab="contact">Contact</button>
     </nav>
     <button id="themeToggle" class="theme-toggle" title="Switch theme">🌙 Dark</button>
@@ -185,6 +186,34 @@
       </div>
 
       <div id="orderResult" class="result-box hidden"></div>
+    </section>
+
+
+    <section id="prescription" class="tab-section">
+      <div class="page-title">
+        <h1>Upload Prescription</h1>
+        <p>Upload prescription image or PDF securely using private S3 pre-signed URL storage.</p>
+      </div>
+
+      <div class="two-column">
+        <form id="prescriptionForm" class="form-card">
+          <h2>Prescription File</h2>
+          <input type="file" id="prescriptionFile" accept=".jpg,.jpeg,.png,.pdf" required />
+          <button type="submit" class="primary-btn">Upload Prescription</button>
+        </form>
+
+        <div class="info-card">
+          <h2>Upload Guidelines</h2>
+          <ul>
+            <li>Allowed file types: JPG, PNG, and PDF.</li>
+            <li>The file is uploaded to private Amazon S3 storage.</li>
+            <li>A temporary pre-signed URL is used for secure upload.</li>
+            <li>The upload link automatically expires after a short time.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="prescriptionResult" class="result-box hidden"></div>
     </section>
 
     <section id="contact" class="tab-section">

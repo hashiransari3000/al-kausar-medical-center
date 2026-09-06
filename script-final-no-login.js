@@ -2,6 +2,7 @@ const APPOINTMENT_API_URL = "https://5wkbhqk1n9.execute-api.ap-south-1.amazonaws
 const USE_REAL_APPOINTMENT_API = true;
 const ORDER_API_URL = "https://5wkbhqk1n9.execute-api.ap-south-1.amazonaws.com/orders";
 const USE_REAL_ORDER_API = true;
+const UPLOAD_URL_API = "https://5wkbhqk1n9.execute-api.ap-south-1.amazonaws.com/upload-url";
 
 const doctors = [
   {
@@ -579,3 +580,86 @@ if (menuToggle && navTabs) {
     });
   });
 }
+
+
+
+// Prescription upload using S3 pre-signed URL
+const prescriptionForm = document.getElementById("prescriptionForm");
+const prescriptionFile = document.getElementById("prescriptionFile");
+const prescriptionResult = document.getElementById("prescriptionResult");
+
+if (prescriptionForm) {
+  prescriptionForm.addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const file = prescriptionFile.files[0];
+
+    if (!file) {
+      alert("Please select a prescription file.");
+      return;
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
+
+    if (!allowedTypes.includes(file.type)) {
+      alert("Only JPG, PNG, and PDF files are allowed.");
+      return;
+    }
+
+    const submitButton = prescriptionForm.querySelector("button[type='submit']");
+    submitButton.disabled = true;
+    submitButton.textContent = "Uploading...";
+
+    try {
+      const urlResponse = await fetch(UPLOAD_URL_API, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type
+        })
+      });
+
+      const urlData = await urlResponse.json();
+
+      if (!urlResponse.ok) {
+        throw new Error(urlData.message || "Failed to get upload URL.");
+      }
+
+      const uploadResponse = await fetch(urlData.uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type
+        },
+        body: file
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("File upload failed.");
+      }
+
+      prescriptionResult.classList.remove("hidden");
+      prescriptionResult.innerHTML = `
+        <h3>Prescription Uploaded Successfully!</h3>
+        <p><strong>File:</strong> ${file.name}</p>
+        <p><strong>S3 Key:</strong> ${urlData.key}</p>
+        <p>This file was uploaded securely using an Amazon S3 pre-signed URL.</p>
+      `;
+
+      prescriptionForm.reset();
+    } catch (error) {
+      prescriptionResult.classList.remove("hidden");
+      prescriptionResult.innerHTML = `
+        <h3>Upload Failed</h3>
+        <p>${error.message}</p>
+        <p>Please try again or contact the clinic directly.</p>
+      `;
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = "Upload Prescription";
+    }
+  });
+}
+
