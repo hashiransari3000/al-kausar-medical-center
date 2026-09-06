@@ -35,16 +35,6 @@
     <button id="themeToggle" class="theme-toggle" title="Switch theme">🌙 Dark</button>
   </header>
 
-  <div id="securityBar" class="security-bar hidden">
-    <div class="security-bar-inner">
-      <span>🛡️ <strong>Security Status:</strong></span>
-      <span id="secAuth" class="sec-badge">🔐 JWT Auth</span>
-      <span id="secWAF" class="sec-badge">🛡️ AWS WAF Active</span>
-      <span id="secTLS" class="sec-badge">🔒 HTTPS</span>
-      <span id="secUser" class="sec-user"></span>
-    </div>
-  </div>
-
   <main>
     <section id="home" class="tab-section active-section">
       <div class="hero">
@@ -265,6 +255,15 @@
   <footer>
     <img src="assets/logo.png" alt="Al-Kausar Logo" />
     <p>© 2026 Al-Kausar Medical Center. Clinic & Pharmacy Services.</p>
+    <div id="securityBar" class="security-bar">
+      <div class="security-bar-inner">
+        <span>🛡️ <strong>Security Status:</strong></span>
+        <span id="secAuth" class="sec-badge">🔐 JWT Auth</span>
+        <span id="secWAF" class="sec-badge">🛡️ WAF Active</span>
+        <span id="secTLS" class="sec-badge">🔒 HTTPS</span>
+        <span id="secUser" class="sec-user"></span>
+      </div>
+    </div>
   </footer>
 
   <script src="script-final-no-login.js"></script>

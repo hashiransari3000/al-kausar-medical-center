@@ -618,7 +618,6 @@ function renderAuthUI() {
   }
 
   if (securityBar) {
-    securityBar.classList.remove("hidden");
     const secUser = document.getElementById("secUser");
     if (secUser) {
       secUser.textContent = loggedIn && user ? "👤 Signed in as " + (user.email || user.username || "User") : "👤 Not signed in";
