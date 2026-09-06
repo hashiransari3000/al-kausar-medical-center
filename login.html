@@ -16,7 +16,6 @@
     .error-msg { color: #c62828; min-height: 1.2em; font-size: .9rem; margin-top: .6rem; }
     .success-msg { color: #2e7d32; min-height: 1.2em; font-size: .9rem; margin-top: .6rem; }
     .hint { margin-top: 1rem; font-size: .85rem; color: var(--muted); }
-    .sec-badges { display: flex; gap: .4rem; justify-content: center; flex-wrap: wrap; margin-top: 1.2rem; }
     .tabs { display: flex; gap: .5rem; justify-content: center; margin-bottom: 1rem; }
     .tabs button { flex: 1; padding: .55rem; border-radius: 8px; border: 1px solid var(--border); background: transparent; cursor: pointer; font-weight: 600; color: var(--muted); }
     .tabs button.active { background: var(--primary, #0c66a4); color: #fff; border-color: var(--primary, #0c66a4); }
@@ -93,15 +92,7 @@
       <p class="hint">Didn't get it? <a class="link" id="resendCode">Resend code</a> &nbsp;•&nbsp; <a class="link" id="backToSignup">Use another email</a></p>
     </div>
 
-    <p class="hint">Demo account: <strong>demo.patient@alkausar.com</strong> / <strong>Demo@12345</strong></p>
-    <p class="hint"><a href="index.html">&larr; Back to site</a></p>
-
-    <div class="sec-badges">
-      <span class="sec-badge">🔐 Cognito Auth</span>
-      <span class="sec-badge">🛡️ JWT Protected API</span>
-      <span class="sec-badge">🔒 HTTPS</span>
     </div>
-  </div>
 
   <script>
     // --- In-app authentication with Amazon Cognito ---
