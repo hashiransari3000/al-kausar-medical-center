@@ -1,8 +1,31 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import { CognitoIdentityProviderClient, AdminGetUserCommand } from "@aws-sdk/client-cognito-identity-provider";
 
 const client = new DynamoDBClient({});
 const dynamoDB = DynamoDBDocumentClient.from(client);
+const ses = new SESClient({});
+const cognito = new CognitoIdentityProviderClient({});
+
+const SES_SENDER = process.env.SES_SENDER || "";
+const USER_POOL_ID = process.env.USER_POOL_ID || "ap-south-1_lK4hqogAM";
+
+async function resolveEmail(claims) {
+  if (claims.email) return claims.email;
+  const username = claims.username || claims["cognito:username"];
+  if (!username) return "anonymous";
+  try {
+    const res = await cognito.send(
+      new AdminGetUserCommand({ UserPoolId: USER_POOL_ID, Username: username })
+    );
+    const emailAttr = (res.UserAttributes || []).find((a) => a.Name === "email");
+    return emailAttr?.Value || "anonymous";
+  } catch (error) {
+    console.error("Could not resolve user email:", error.message);
+    return "anonymous";
+  }
+}
 
 const ALLOWED_ORIGINS = new Set([
   "https://d3sh4djt5tzbsr.cloudfront.net",
@@ -103,6 +126,54 @@ function validateOrder(body) {
   };
 }
 
+function renderItems(items) {
+  return items
+    .map(
+      (item) =>
+        `<tr><td style="background:#f4f4f4">${item.name}</td><td style="background:#f4f4f4">${item.quantity} x PKR ${Number(item.price).toFixed(0)}</td><td style="background:#f4f4f4">PKR ${Number(item.price * item.quantity).toFixed(0)}</td></tr>`
+    )
+    .join("");
+}
+
+async function sendOrderConfirmation(order) {
+  const to = order.customerEmail;
+  if (!SES_SENDER || !to || to === "anonymous") return;
+
+  try {
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #ddd;border-radius:8px;overflow:hidden">
+        <div style="background:#0b3d2e;color:#fff;padding:16px 24px;font-size:20px;font-weight:bold">Al-Kausar Medical Center</div>
+        <div style="padding:24px;color:#222">
+          <p>Dear ${order.name},</p>
+          <p>Your medicine order has been <strong>placed</strong> and is being prepared by our pharmacy.</p>
+          <p><b>Order ID:</b> ${order.orderId}</p>
+          <table cellpadding="8" style="border-collapse:collapse;margin:16px 0;width:100%">
+            <tr><th style="text-align:left;background:#e8e8e8">Medicine</th><th style="text-align:left;background:#e8e8e8">Qty x Price</th><th style="text-align:left;background:#e8e8e8">Amount</th></tr>
+            ${renderItems(order.items)}
+            <tr><td colspan="2" style="background:#0b3d2e;color:#fff"><b>Total</b></td><td style="background:#0b3d2e;color:#fff"><b>PKR ${Number(order.total).toFixed(0)}</b></td></tr>
+          </table>
+          <p><b>Delivery address:</b> ${order.address}</p>
+          <p><b>Contact:</b> ${order.contact}</p>
+          <p>Thank you for choosing Al-Kausar Medical Center.</p>
+          <p style="color:#888;font-size:12px">This is an automated confirmation email.</p>
+        </div>
+      </div>`;
+
+    await ses.send(
+      new SendEmailCommand({
+        Source: SES_SENDER,
+        Destination: { ToAddresses: [to] },
+        Message: {
+          Subject: { Data: "Order Confirmed - Al-Kausar Medical Center" },
+          Body: { Html: { Data: html } }
+        }
+      })
+    );
+  } catch (error) {
+    console.error("Confirmation email could not be sent:", error.message);
+  }
+}
+
 export const handler = async (event) => {
   const origin = event.headers?.origin || "";
 
@@ -122,6 +193,7 @@ export const handler = async (event) => {
       };
     }
     const claims = event.requestContext?.authorizer?.jwt?.claims || {};
+    const customerEmail = await resolveEmail(claims);
     const result = validateOrder(body);
 
     if (!result.ok) {
@@ -134,7 +206,7 @@ export const handler = async (event) => {
 
     const order = {
       ...result.order,
-      customerEmail: claims.email || claims.username || "anonymous"
+      customerEmail
     };
 
     await dynamoDB.send(
@@ -143,6 +215,8 @@ export const handler = async (event) => {
         Item: order
       })
     );
+
+    await sendOrderConfirmation(order);
 
     return {
       statusCode: 200,
